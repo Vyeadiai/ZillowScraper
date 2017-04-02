@@ -1,0 +1,106 @@
+Run by calling the RunZillowScraper.sh script from your crontab. This is what
+my crontab looks like below, you will need to modify it to run every hour. I had issues with calling node from 
+crontab because I installed node in a virtual environment. Therefore I needed that first line in the crontab 
+where I set the PATH, you may not need that to run your cronjob...I am saving output to 1>> and errors 2>> to a file,
+modify the location of these output files. Also, modify your crontab in sudo so the script can be run as sudo:
+
+sudo crontab -e
+
+To run this without cron just run the script with sudo:
+sudo RunZillowScraper.sh
+
+
+
+
+======================================crontab======================================
+
+PATH="/usr/local/bin:/usr/bin:/bin"
+
+24 10 30 Mar * /Users/testtest/scrapyProjects/timecoverspider/timecoverspider/RunZillowScraper.sh 1>> /Users/testtest/scrapyProjects/timecoverspider/timecoverspider/cronJobOutput 2>> /Users/testtest/scrapyProjects/timecoverspider/timecoverspider/cronJobError.err
+
+=====================================================================================================
+
+
+
+
+
+Now I will go over the contents of the RunZillowScraper.sh, obviously you will have to adjust the paths of each command in this script.
+
+In the first line of the RunZillowScraper script I am setting my virtual environment where I installed node and other dependencies, you will not need that I guess.
+
+Then I am creating the directory and time-stamped file where I will save the locations(path) of the videos that have just been created which will be uploaded to youtube. 
+
+Run the scraper which gets the zillow images and home data.
+Convert the images that were downloaded to the same dimensions in order for videoshow to work properly.
+Call the createZillowVideo.js script which parses the JSON for the captions in images, then creates the video. When a video has been successfully created, 
+the location(path) of the newly created video will be written to that file.
+Finally upload the videos to youtube with uploadVideosToYoutube.py passing that filename containing locations(paths) of the videos that have just been created. 
+
+
+
+
+
+
+======================================RunZillowScraper.sh======================================
+
+source /Users/testtest/scrapyProjects/timecoverspider/timecoverspider/venv/bin/activate
+
+mkdir /Users/testtest/scrapyProjects/timecoverspider/timecoverspider/UploadedVideos
+
+file_name=uploadedVideos
+current_time=$(date "+%d_%m_%Y")
+new_file_name=/Users/testtest/scrapyProjects/timecoverspider/timecoverspider/UploadedVideos/$file_name.$current_time.txt
+
+touch $new_file_name
+
+cd /Users/testtest/scrapyProjects/timecoverspider/timecoverspider
+
+scrapy runspider /Users/testtest/scrapyProjects/timecoverspider/timecoverspider/spiders/coverspider.py
+
+python /Users/testtest/scrapyProjects/videoShowDir/convertImages.py
+
+#cd /Users/testtest/scrapyProjects/videoShowDir/
+
+/usr/local/bin/node /Users/testtest/scrapyProjects/videoShowDir/createZillowVideo.js $new_file_name
+
+python /Users/testtest/scrapyProjects/videoShowDir/uploadVideosToYoutube.py $new_file_name
+
+
+=====================================================================================================
+
+
+
+
+
+
+You will have to adjust the locations of the following files:
+
+=================================createZillowVideo.js===============================
+In createZillowVideo.js this variable stores the top level directory where all the zillow images are saved. 
+The script will search through each directory in that directory looking if a video exists in that directory, 
+if the video does not exist it will attempt to create one.
+
+var start_dir = "/Users/testtest/scrapyProjects/zillowImages";
+====================================================================================
+
+
+=========================convertImages.py=================================
+
+Same for this file, this variable stores the top level directory where all the zillow images are saved. 
+start_dir = "/Users/testtest/scrapyProjects/zillowImages"
+
+====================================================================================
+
+
+
+=================================coverspider.py=================================
+In coverspider.py this is the root folder where all the folders containing the images will be created
+		
+rootDirectoryZillowImages = "/Users/testtest/scrapyProjects/zillowImages"
+		
+and 
+start_urls = ["https://www.zillow.com/homes/"]
+
+is where the spider will start from.
+
+====================================================================================
